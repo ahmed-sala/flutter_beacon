@@ -20,7 +20,7 @@ import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry;
-import io.flutter.plugin.common.PluginRegistry.Registrar;
+// ❌ REMOVED: import io.flutter.plugin.common.PluginRegistry.Registrar;
 
 public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, MethodCallHandler,
     PluginRegistry.RequestPermissionsResultListener,
@@ -54,12 +54,7 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
 
   }
 
-  public static void registerWith(Registrar registrar) {
-    final FlutterBeaconPlugin instance = new FlutterBeaconPlugin();
-    instance.setupChannels(registrar.messenger(), registrar.activity());
-    registrar.addActivityResultListener(instance);
-    registrar.addRequestPermissionsResultListener(instance);
-  }
+  // ❌ REMOVED: public static void registerWith(Registrar registrar) { ... }
 
   @Override
   public void onAttachedToEngine(@NonNull FlutterPluginBinding binding) {
@@ -195,10 +190,6 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
     }
 
     if (call.method.equals("setLocationAuthorizationTypeDefault")) {
-      // Android does not have the concept of "requestWhenInUse" and "requestAlways" like iOS does,
-      // so this method does nothing.
-      // (Well, in Android API 29 and higher, there is an "ACCESS_BACKGROUND_LOCATION" option,
-      //  which could perhaps be appropriate to add here as an improvement.)
       result.success(true);
       return;
     }
@@ -233,19 +224,6 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
         return;
       }
 
-      // Here, location services permission is granted.
-      //
-      // It's possible location permission was granted without going through
-      // our onRequestPermissionsResult() - for example if a different flutter plugin
-      // also requested location permissions, we could end up here with
-      // checkLocationServicesPermission() returning true before we ever called requestAuthorization().
-      //
-      // In that case, we'll never get a notification posted to eventSinkLocationAuthorizationStatus
-      //
-      // So we could could have flutter code calling requestAuthorization here and expecting to see
-      // a change in eventSinkLocationAuthorizationStatus but never receiving it.
-      //
-      // Ensure an ALLOWED status (possibly duplicate) is posted back.
       if (eventSinkLocationAuthorizationStatus != null) {
         eventSinkLocationAuthorizationStatus.success("ALLOWED");
       }
@@ -365,7 +343,6 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
     }
   };
 
-  // region ACTIVITY CALLBACK
   @Override
   public boolean onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
     if (requestCode != REQUEST_CODE_LOCATION) {
@@ -378,23 +355,19 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
       if (!platform.shouldShowRequestPermissionRationale(permission)) {
         int grantResult = grantResults[0];
         if (grantResult == PackageManager.PERMISSION_GRANTED) {
-          //allowed
           locationServiceAllowed = true;
         }
         if (eventSinkLocationAuthorizationStatus != null) {
-          // shouldShowRequestPermissionRationale = false, so if access wasn't granted, the user clicked DENY and checked DON'T SHOW AGAIN
           eventSinkLocationAuthorizationStatus.success(locationServiceAllowed ? "ALLOWED" : "DENIED");
         }
       }
       else {
-        // shouldShowRequestPermissionRationale = true, so the user has clicked DENY but not DON'T SHOW AGAIN, we can possibly prompt again
         if (eventSinkLocationAuthorizationStatus != null) {
           eventSinkLocationAuthorizationStatus.success("NOT_DETERMINED");
         }
       }
     }
     else {
-      // Permission request was cancelled (another requestPermission active, other interruptions), we can possibly prompt again
       if (eventSinkLocationAuthorizationStatus != null) {
         eventSinkLocationAuthorizationStatus.success("NOT_DETERMINED");
       }
@@ -440,5 +413,4 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
 
     return bluetoothEnabled;
   }
-  // endregion
 }
